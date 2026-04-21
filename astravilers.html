@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Astravilers</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #0b0b12;
+      color: #e8e8f0;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+      height: 100%;
+    }
+    #wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    canvas {
+      background: #1a1a2e;
+      border: 2px solid #3a3a5a;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      box-shadow: 0 0 40px rgba(120, 80, 200, 0.3);
+    }
+    #title {
+      font-size: 28px;
+      letter-spacing: 4px;
+      margin-bottom: 10px;
+      color: #c9a9ff;
+      text-shadow: 0 0 10px #7a4fc7;
+    }
+    #hint {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #8888a0;
+    }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="title">ASTRAVILERS</div>
+    <canvas id="game" width="640" height="480"></canvas>
+    <div id="hint">WASD / Arrows to move</div>
+  </div>
+
+<script>
+// ===== Phase 1: Foundation =====
+// Canvas, game loop, input, movable player block.
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+
+const keys = Object.create(null);
+window.addEventListener('keydown', (e) => {
+  keys[e.key.toLowerCase()] = true;
+  // prevent arrow-key page scroll
+  if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) {
+    e.preventDefault();
+  }
+});
+window.addEventListener('keyup', (e) => {
+  keys[e.key.toLowerCase()] = false;
+});
+
+const player = {
+  x: W / 2,
+  y: H / 2,
+  w: 20,
+  h: 20,
+  speed: 140, // pixels per second
+  color: '#6ad0ff'
+};
+
+function isHeld(...names) {
+  for (const n of names) if (keys[n]) return true;
+  return false;
+}
+
+function update(dt) {
+  let dx = 0, dy = 0;
+  if (isHeld('a', 'arrowleft')) dx -= 1;
+  if (isHeld('d', 'arrowright')) dx += 1;
+  if (isHeld('w', 'arrowup')) dy -= 1;
+  if (isHeld('s', 'arrowdown')) dy += 1;
+
+  // normalize diagonal
+  if (dx !== 0 && dy !== 0) {
+    const inv = 1 / Math.sqrt(2);
+    dx *= inv; dy *= inv;
+  }
+
+  player.x += dx * player.speed * dt;
+  player.y += dy * player.speed * dt;
+
+  // clamp to canvas for now
+  if (player.x < 0) player.x = 0;
+  if (player.y < 0) player.y = 0;
+  if (player.x > W - player.w) player.x = W - player.w;
+  if (player.y > H - player.h) player.y = H - player.h;
+}
+
+function render() {
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, W, H);
+
+  // grid for reference
+  ctx.strokeStyle = '#22223a';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 32) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 32) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // player
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
